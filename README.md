@@ -214,3 +214,68 @@ Add this to `userContent.css` (See instructions how to use firefox styles on [us
 }
 /* END Dark mode PDF viewer */
 ```
+
+## `$PS1`
+
+```bash
+export PS1='\033[00;35m[\t]\033[0m ${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\] : \[\033[01;34m\]\w\[\033[00m\]$(__git_ps1 " \033[01;36m(%s)\033[0m")\n$ '
+```
+
+## yt-dlp YouTube archival script
+
+`yt-archive.sh`
+
+```sh
+#!/usr/bin/env bash
+# Adapted from: https://gist.github.com/Synertry/
+
+{
+# Check if it exists in any archive
+if yt-dlp --dump-json "$1" 2>/dev/null | grep -q '"extractor": "youtube"'; then
+        yt-dlp --get-id "$1" 2>/dev/null | while read id; do
+                echo "Checking if video $1 exists in any archive..."
+                curl -s https://findyoutubevideo.thetechrobo.ca/api/v4/$id | jq -jr '
+                  "ID: ", .id, "\n",
+                  (.keys[] |
+                    select(
+                      .classname != "YouTube" and
+                      .classname != "ArchiveOrgCDX" and
+                      .classname != "Filmot" and
+                      .classname != "removededm"
+                    ) |
+                    "\(.archived | if . then "\u001b[0;32m" else "\u001b[0;31m" end)\(.name)\t\(.archived)\u001b[0m\n"
+                  )' | column -t -s $'\t'
+        done
+fi
+
+yt-dlp \
+--cookies youtube.com_cookies.txt \
+--no-progress \
+--ignore-errors --retries 20 \
+--concurrent-fragments 4 \
+--write-url-link --write-webloc-link --write-desktop-link \
+--format 'bv*+ba/b' \
+--merge-output-format mkv \
+--audio-quality 0 \
+--write-info-json --write-all-thumbnail --write-description --write-comments --write-playlist-metafiles \
+--sub-langs all --write-subs --sub-format 'ass/srt/best' \
+--embed-thumbnail --embed-metadata \
+--no-playlist --no-write-playlist-metafiles --playlist-reverse \
+--download-archive YouTube-Video_IDs_DO_NOT_REMOVE.txt \
+--paths "/mnt/d/Videos/Archive" --paths "temp:/mnt/d/Videos/Archive/tmp" \
+--output '%(channel)s/%(upload_date)s_%(title)s/%(title)s [%(id)s][%(vcodec)s %(resolution)s %(acodec)s].%(ext)s' \
+--output 'subtitle:%(channel)s/%(upload_date)s_%(title)s/subs/%(title)s [%(id)s].%(ext)s' \
+--output 'thumbnail:%(channel)s/%(upload_date)s_%(title)s/thumbs/%(title)s [%(id)s](thumb).%(ext)s' \
+--output 'description:%(channel)s/%(upload_date)s_%(title)s/%(title)s [%(id)s].%(ext)s' \
+--output 'infojson:%(channel)s/%(upload_date)s_%(title)s/%(title)s [%(id)s].%(ext)s' \
+--output 'link:%(channel)s/%(upload_date)s_%(title)s/links/%(title)s [%(id)s](link).%(ext)s' \
+--output 'chapter:%(channel)s/%(upload_date)s_%(title)s/chapter/%(title)s [%(id)s](chapter).%(ext)s' \
+--output 'pl_thumbnail:%(channel)s/%(upload_date)s_%(title)s/pl/%(title)s [%(id)s](thumb).%(ext)s' \
+--output 'pl_description:%(channel)s/%(upload_date)s_%(title)s/pl/%(title)s [%(id)s].%(ext)s' \
+--output 'pl_infojson:%(channel)s/%(upload_date)s_%(title)s/pl/%(title)s [%(id)s].%(ext)s' \
+--output 'pl_video:%(channel)s/%(upload_date)s_%(title)s/pl/%(title)s [%(id)s][%(vcodec)s %(resolution)s %(acodec)s].%(ext)s' \
+--use-postprocessor ReturnYoutubeDislike:when=pre_process \
+--exec 'echo "\n\033[1;32mFINISHED DOWNLOAD!"; du -sh {}; echo "\033[0m"' \
+$@
+} 2>&1 | tee "/mnt/d/Videos/Archive/download_logs/yt-dlp_videos_$(date -Iseconds).log"
+```
