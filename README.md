@@ -279,3 +279,18 @@ yt-dlp \
 $@
 } 2>&1 | tee "/mnt/d/Videos/Archive/download_logs/yt-dlp_videos_$(date -Iseconds).log"
 ```
+
+## OBS input overlay plugin
+
+- Install [input overlay plugin](https://github.com/univrsal/input-overlay)
+- Enable websockets in OBS, restart, download this [HTML file](https://github.com/univrsal/input-overlay/tree/master/presets/input-history-windows)
+- Set to 600 x 1000 w/h, align left
+- Stylesheet:
+```css
+body {
+	color: skyblue;
+	font-size: 64px;
+	font-family: "IBM Plex Sans";
+	font-weight: bold;
+}
+```
